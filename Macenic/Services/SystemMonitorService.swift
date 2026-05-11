@@ -2,6 +2,7 @@ import Foundation
 import Darwin
 import IOKit
 import IOKit.ps
+import Metal
 
 @Observable
 final class SystemMonitorService {
@@ -19,6 +20,10 @@ final class SystemMonitorService {
     var batteryCycleCount: Int = 0
     var batteryHealth: Int = 100
     var lastChargingTime: Date?
+    var gpuName: String = "Unknown"
+    var gpuUtilization: Double = 0
+    var gpuMemoryUsedBytes: UInt64 = 0
+    var gpuMemoryTotalBytes: UInt64 = 0
 
     var hasBattery: Bool { batteryLevel >= 0 }
 
@@ -57,6 +62,7 @@ final class SystemMonitorService {
         updateDisk()
         updateNetwork()
         updateBattery()
+        updateGPU()
     }
 
     private func updateCPU() {
@@ -205,5 +211,76 @@ final class SystemMonitorService {
             UserDefaults.standard.set(lastChargingTime, forKey: "lastChargingTime")
         }
         wasCharging = batteryIsCharging
+    }
+
+    private func updateGPU() {
+        if let device = MTLCreateSystemDefaultDevice() {
+            gpuName = device.name
+            if device.recommendedMaxWorkingSetSize > 0 {
+                gpuMemoryTotalBytes = device.recommendedMaxWorkingSetSize
+            }
+        }
+
+        var iterator: io_iterator_t = 0
+        let matching = IOServiceMatching("IOAccelerator")
+        let result = IOServiceGetMatchingServices(kIOMainPortDefault, matching, &iterator)
+        guard result == KERN_SUCCESS else { return }
+        defer { IOObjectRelease(iterator) }
+
+        var service = IOIteratorNext(iterator)
+        while service != IO_OBJECT_NULL {
+            defer { IOObjectRelease(service) }
+
+            if let stats = IORegistryEntryCreateCFProperty(
+                service,
+                "PerformanceStatistics" as CFString,
+                kCFAllocatorDefault,
+                0
+            )?.takeRetainedValue() as? [String: Any] {
+                if let utilization = extractGPUUtilization(from: stats) {
+                    gpuUtilization = min(max(utilization, 0), 100)
+                }
+                if let used = extractGPUMemoryUsed(from: stats) {
+                    gpuMemoryUsedBytes = used
+                }
+            }
+
+            service = IOIteratorNext(iterator)
+        }
+    }
+
+    private func extractGPUUtilization(from stats: [String: Any]) -> Double? {
+        let keys = [
+            "Device Utilization %",
+            "GPU Core Utilization",
+            "GPU Busy",
+            "GPU Activity(%)",
+            "GPU Usage %"
+        ]
+        for key in keys {
+            if let value = stats[key] as? NSNumber {
+                let raw = value.doubleValue
+                if raw > 10000 { return raw / 1000 }
+                if raw > 1000 { return raw / 100 }
+                if raw > 100 { return raw / 10 }
+                return raw
+            }
+        }
+        return nil
+    }
+
+    private func extractGPUMemoryUsed(from stats: [String: Any]) -> UInt64? {
+        let keys = [
+            "vramUsedBytes",
+            "VRAM In Use Bytes",
+            "In use system memory",
+            "Alloc system memory"
+        ]
+        for key in keys {
+            if let value = stats[key] as? NSNumber {
+                return value.uint64Value
+            }
+        }
+        return nil
     }
 }

@@ -22,6 +22,19 @@ struct DashboardView: View {
             footer
         }
         .frame(width: 340)
+        .alert(
+            "Version \(appState.updates.latestVersion) available",
+            isPresented: updateAlertPresented
+        ) {
+            Button("Download") {
+                appState.updates.openDownload()
+            }
+            Button("Later", role: .cancel) {
+                appState.updates.dismissUpdate()
+            }
+        } message: {
+            Text(updateMessage)
+        }
     }
 
     private var header: some View {
@@ -84,6 +97,19 @@ struct DashboardView: View {
             }
             .buttonStyle(.plain)
 
+            Button {
+                Task { await appState.updates.checkForUpdates() }
+            } label: {
+                HStack(spacing: 4) {
+                    Image(systemName: "arrow.triangle.2.circlepath")
+                        .font(.system(size: 10))
+                    Text("Check Updates")
+                        .font(.system(size: 11))
+                }
+                .foregroundStyle(.secondary)
+            }
+            .buttonStyle(.plain)
+
             Spacer()
 
             Button("Quit") {
@@ -98,6 +124,41 @@ struct DashboardView: View {
     }
 
     private static weak var aboutWindow: NSWindow?
+
+    private var updateAlertPresented: Binding<Bool> {
+        Binding(
+            get: { appState.updates.isUpdateAvailable },
+            set: { newValue in
+                if !newValue {
+                    appState.updates.dismissUpdate()
+                }
+            }
+        )
+    }
+
+    private var updateMessage: String {
+        if appState.updates.releaseNotes.isEmpty {
+            return """
+            • Bug fixes
+            • Faster performance
+            • UI improvements
+            """
+        }
+
+        let lines = appState.updates.releaseNotes
+            .split(separator: "\n")
+            .map { String($0).trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+            .prefix(3)
+            .map { line in
+                if line.hasPrefix("-") || line.hasPrefix("*") || line.hasPrefix("•") {
+                    return "• " + line.dropFirst().trimmingCharacters(in: .whitespaces)
+                }
+                return "• " + line
+            }
+
+        return lines.joined(separator: "\n")
+    }
 
     private func showAboutWindow() {
         if let existing = Self.aboutWindow, existing.isVisible {

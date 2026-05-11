@@ -24,6 +24,12 @@ struct SystemMonitorView: View {
                     detail: "\(ByteFormatter.format(monitor.diskUsed)) / \(ByteFormatter.format(monitor.diskTotal))",
                     color: diskColor
                 )
+                GaugeView(
+                    title: "GPU",
+                    value: monitor.gpuUtilization,
+                    detail: "\(Int(monitor.gpuUtilization))% used",
+                    color: gpuUsageColor
+                )
 
                 Divider()
 
@@ -37,7 +43,7 @@ struct SystemMonitorView: View {
             .padding(.vertical, 8)
             .frame(maxWidth: .infinity)
         }
-        .frame(height: 380)
+        .frame(height: 440)
     }
 
     private var networkSection: some View {
@@ -124,6 +130,10 @@ struct SystemMonitorView: View {
 
     private var diskColor: Color {
         monitor.diskUsagePercent > 80 ? .red : monitor.diskUsagePercent > 50 ? .orange : .purple
+    }
+
+    private var gpuUsageColor: Color {
+        monitor.gpuUtilization > 90 ? .red : monitor.gpuUtilization > 65 ? .orange : .blue
     }
 
     private var batteryIcon: String {

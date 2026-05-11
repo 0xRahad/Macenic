@@ -58,9 +58,9 @@ final class KeyboardCleanerService {
         guard !isActive else { return }
 
         if !Self.hasPermission {
-            permissionDenied = true
+            permissionDenied = false
             pendingDuration = duration
-            triggerPermissionFlow()
+            openAccessibilitySettings()
             return
         }
 
@@ -71,6 +71,7 @@ final class KeyboardCleanerService {
 
     func openAccessibilitySettings() {
         stopPermissionPolling()
+        triggerPermissionFlow()
 
         let urls = [
             "x-apple.systempreferences:com.apple.settings.PrivacySecurity.extension?Privacy_Accessibility",
@@ -134,8 +135,8 @@ final class KeyboardCleanerService {
             callback: keyboardCleanerCallback,
             userInfo: nil
         ) else {
-            permissionDenied = true
-            triggerPermissionFlow()
+            permissionDenied = false
+            openAccessibilitySettings()
             return
         }
 

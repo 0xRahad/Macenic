@@ -20,7 +20,7 @@ struct ClipboardHistoryView: View {
                 bottomBar
             }
         }
-        .frame(height: 380)
+        .frame(height: 440)
     }
 
     private var searchBar: some View {

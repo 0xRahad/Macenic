@@ -25,6 +25,7 @@ final class AppState {
     let systemMonitor = SystemMonitorService()
     let clipboard = ClipboardService()
     let audio = AudioService()
+    let updates = AppUpdateService()
     let keepAwake = KeepAwakeService()
     let keyboardCleaner = KeyboardCleanerService()
     let hotKey = HotKeyService()
@@ -41,6 +42,10 @@ final class AppState {
             self?.toggleClipboardHUD()
         }
         hotKey.register()
+
+        Task { [weak self] in
+            await self?.updates.checkForUpdates()
+        }
     }
 
     func toggleClipboardHUD() {

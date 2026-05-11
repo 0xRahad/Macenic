@@ -5,19 +5,23 @@ struct GaugeView: View {
     let value: Double
     let detail: String
     let color: Color
+    var centerText: String?
+    var showsRing: Bool = true
 
     var body: some View {
         HStack(spacing: 12) {
             ZStack {
-                Circle()
-                    .stroke(color.opacity(0.15), lineWidth: 5)
-                Circle()
-                    .trim(from: 0, to: min(value / 100, 1.0))
-                    .stroke(color, style: StrokeStyle(lineWidth: 5, lineCap: .round))
-                    .rotationEffect(.degrees(-90))
-                    .animation(.easeInOut(duration: 0.5), value: value)
-                Text("\(Int(value))%")
-                    .font(.system(size: 11, weight: .semibold, design: .rounded))
+                if showsRing {
+                    Circle()
+                        .stroke(color.opacity(0.15), lineWidth: 5)
+                    Circle()
+                        .trim(from: 0, to: min(value / 100, 1.0))
+                        .stroke(color, style: StrokeStyle(lineWidth: 5, lineCap: .round))
+                        .rotationEffect(.degrees(-90))
+                        .animation(.easeInOut(duration: 0.5), value: value)
+                }
+                Text(centerText ?? "\(Int(value))%")
+                    .font(.system(size: showsRing ? 11 : 24, weight: .semibold, design: .rounded))
                     .monospacedDigit()
             }
             .frame(width: 42, height: 42)
