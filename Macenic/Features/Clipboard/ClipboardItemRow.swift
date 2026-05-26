@@ -4,7 +4,7 @@ struct ClipboardItemRow: View {
     let item: ClipboardItem
     var index: Int? = nil
     var isSelected: Bool = false
-    let onCopy: () -> Void
+    let onTap: () -> Void
     let onPin: () -> Void
     let onDelete: () -> Void
 
@@ -37,7 +37,7 @@ struct ClipboardItemRow: View {
         .padding(.horizontal, 12)
         .padding(.vertical, 6)
         .contentShape(Rectangle())
-        .onTapGesture(perform: onCopy)
+        .onTapGesture(perform: onTap)
         .background(
             RoundedRectangle(cornerRadius: 6)
                 .fill(isSelected ? AnyShapeStyle(.tint.opacity(0.15)) : AnyShapeStyle(.quaternary.opacity(0.5)))

@@ -91,7 +91,7 @@ struct ClipboardHistoryView: View {
                 ForEach(service.filteredItems) { item in
                     ClipboardItemRow(
                         item: item,
-                        onCopy: { service.copyToClipboard(item) },
+                        onTap: { service.copyToClipboard(item) },
                         onPin: { service.togglePin(item) },
                         onDelete: { service.delete(item) }
                     )

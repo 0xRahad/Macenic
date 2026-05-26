@@ -71,26 +71,13 @@ struct ClipboardHUDView: View {
 
     private var filterBar: some View {
         HStack(spacing: 8) {
-            HStack(spacing: 4) {
-                Image(systemName: "magnifyingglass")
-                    .font(.system(size: 10))
-                    .foregroundStyle(.secondary)
-                TextField("Search...", text: $service.searchQuery)
-                    .textFieldStyle(.plain)
-                    .font(.system(size: 11))
-            }
-            .padding(.horizontal, 8)
-            .padding(.vertical, 5)
-            .background(.quaternary.opacity(0.3))
-            .clipShape(RoundedRectangle(cornerRadius: 6))
-
             Picker("", selection: $service.selectedFilter) {
                 ForEach(ClipboardFilter.allCases, id: \.self) { filter in
                     Text(filter.rawValue).tag(filter)
                 }
             }
             .pickerStyle(.segmented)
-            .frame(width: 140)
+            .frame(width: 180)
         }
         .padding(.horizontal, 10)
         .padding(.vertical, 6)
@@ -105,7 +92,11 @@ struct ClipboardHUDView: View {
                             item: item,
                             index: index,
                             isSelected: index == selectedIndex,
-                            onCopy: { onPaste(item) },
+                            onTap: {
+                                selectedIndex = index
+                                hoverTask?.cancel()
+                                hoveredItem = item
+                            },
                             onPin: { service.togglePin(item) },
                             onDelete: { service.delete(item) }
                         )
@@ -118,14 +109,35 @@ struct ClipboardHUDView: View {
                                     hoveredItem = item
                                 }
                             } else {
-                                hoveredItem = nil
+                                hoverTask = Task {
+                                    try? await Task.sleep(for: .milliseconds(120))
+                                    guard !Task.isCancelled else { return }
+                                    if hoveredItem?.id == item.id {
+                                        hoveredItem = nil
+                                    }
+                                }
                             }
                         }
                         .popover(isPresented: Binding(
                             get: { hoveredItem?.id == item.id },
                             set: { if !$0 { hoveredItem = nil } }
                         ), arrowEdge: .trailing) {
-                            ItemPreview(item: item)
+                            HoverPreview(item: item)
+                            .onHover { hovering in
+                                if hovering {
+                                    hoverTask?.cancel()
+                                    hoveredItem = item
+                                } else {
+                                    hoverTask?.cancel()
+                                    hoverTask = Task {
+                                        try? await Task.sleep(for: .milliseconds(120))
+                                        guard !Task.isCancelled else { return }
+                                        if hoveredItem?.id == item.id {
+                                            hoveredItem = nil
+                                        }
+                                    }
+                                }
+                            }
                         }
                         .id(item.id)
                     }
@@ -167,7 +179,7 @@ struct ClipboardHUDView: View {
     }
 }
 
-private struct ItemPreview: View {
+private struct HoverPreview: View {
     let item: ClipboardItem
 
     var body: some View {
@@ -188,6 +200,6 @@ private struct ItemPreview: View {
                     .padding(10)
             }
         }
-        .frame(width: 260, height: 200)
+        .frame(width: 260, height: 300)
     }
 }
